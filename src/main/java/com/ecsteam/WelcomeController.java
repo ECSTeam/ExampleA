@@ -1,6 +1,7 @@
 package com.ecsteam;
 
 
+import java.io.OutputStream;
 import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
@@ -148,7 +149,7 @@ public class WelcomeController {
 	
 	@RequestMapping(value = "/create", method = RequestMethod.GET)
 	@ResponseBody
-	public View createSession(HttpSession session) {
+	public String createSession(HttpSession session) {
 		Date createTime = (Date)session.getAttribute("createTime");
 		UUID uid = (UUID) session.getAttribute("uid");
         if (uid == null) {
@@ -159,12 +160,12 @@ public class WelcomeController {
             
             session.setAttribute("counter", 0);
         }
-        return new RedirectView("/");
+        return redirectViaJavascript();
 	}
 	
 	@RequestMapping(value = "/remove", method = RequestMethod.GET)
 	@ResponseBody
-	public View removeSession(HttpServletRequest request, HttpServletResponse response) {
+	public String removeSession(HttpServletRequest request, HttpServletResponse response) {
 		
 		HttpSession session = request.getSession(false);
 		if (session != null) {
@@ -175,12 +176,12 @@ public class WelcomeController {
 		cookie.setMaxAge(0);
 		cookie.setPath("/");
 		response.addCookie(cookie);
-        return new RedirectView("/");
+        return redirectViaJavascript();
 	}
 	
 	@RequestMapping(value = "/clearCookies", method = RequestMethod.GET)
 	@ResponseBody
-	public View clearCookies(HttpServletRequest request, HttpServletResponse response) {
+	public String clearCookies(HttpServletRequest request, HttpServletResponse response) {
         Cookie[] cookies = request.getCookies();
         for (Cookie cookie : cookies) {
             cookie.setMaxAge(0);
@@ -188,21 +189,29 @@ public class WelcomeController {
             cookie.setPath("/");
             response.addCookie(cookie);
         }
-        return new RedirectView("/");
+        //return new RedirectView("/");
+        return redirectViaJavascript();
 	}
 	
 	@RequestMapping(value = "/createTestCookie", method = RequestMethod.GET)
 	@ResponseBody
-	public View createTestCookie(HttpServletRequest request, HttpServletResponse response) {
+	public String createTestCookie(HttpServletRequest request, HttpServletResponse response) {
 		Cookie cookie = new Cookie(TEST_COOKIE_NAME,"MyExampleValue_"+System.currentTimeMillis());
 		cookie.setPath("/");
 		response.addCookie(cookie);
-        return new RedirectView("/");
+		return redirectViaJavascript();
 	}
-	
-	@RequestMapping("/foo")
-	public String foo(Map<String, Object> model) {
-		throw new RuntimeException("Foo");
+	/**
+	 * Not able to use return type of "View" and return new RedirectView("/"); because complex testing
+	 * through load balancer (e.g., F5) might not have a match between the "Host:" and the real
+	 * URL the browser is using.  This can happen when we force the "Host:" value within the LB.  The
+	 * safest way is to let the browser do a relative request back to root URI so the host name does
+	 * not change.
+	 * 
+	 * @return
+	 */
+	private String redirectViaJavascript() {
+		return "<html><head><script>window.location.href='/'; </script></head></html>";
 	}
 
 }
