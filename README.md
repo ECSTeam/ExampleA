@@ -8,6 +8,6 @@ The app allows for a custom message override. It defaults to "Hello World", you 
 
 This application has been used to test external global load balancers (e.g., BigIP F5) to ensure active/active datacenter stickiness.   
 
-Screenshot:
+## Screenshot:
 
-![Screenshot](docs/screenshot.png?raw=true)
+![Screenshot](docs/screenshot1.png)
