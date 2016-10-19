@@ -1,5 +1,5 @@
 ---
-applicatoins:
+applications:
 - name: examplea
   path: build/libs/examplea-0.0.1-SNAPSHOT.jar
   instances: 2
