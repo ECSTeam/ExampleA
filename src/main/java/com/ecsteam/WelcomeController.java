@@ -1,9 +1,7 @@
 package com.ecsteam;
 
 
-import java.io.OutputStream;
 import java.util.Date;
-import java.util.Map;
 import java.util.UUID;
 
 import javax.servlet.http.Cookie;
@@ -12,12 +10,13 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.servlet.View;
-import org.springframework.web.servlet.view.RedirectView;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
 @Controller
 public class WelcomeController {
@@ -57,10 +56,13 @@ public class WelcomeController {
 	public String index(HttpServletRequest request) {
 		
 		HttpSession session = request.getSession(false);
-		
-		
+				
         StringBuilder sb = new StringBuilder();
-        sb.append("<html><body>");
+        sb.append("<html>");
+        
+        // Prevent browser from making "/favicon.ico" requests
+        sb.append("<head><link rel=\"icon\" type=\"image/png\" href=\"data:image/png;base64,iVBORw0KGgo=\"></head>");
+        sb.append("<body>");
         
         sb.append("<h1>App info</h1>");
               
@@ -213,6 +215,14 @@ public class WelcomeController {
 	private String redirectViaJavascript() {
 		return "<html><head><script>window.location.href='/'; </script></head></html>";
 	}
+
+	@ExceptionHandler(IllegalArgumentException.class)
+	@ResponseStatus(value = HttpStatus.BAD_REQUEST, reason="Incorrect request,     check request data")
+	public void handleClientErrors(Exception ex) { }
+	
+	@ExceptionHandler(Exception.class)
+	@ResponseStatus(value = HttpStatus.INTERNAL_SERVER_ERROR, reason="Internal server error")
+	public void handleServerErrors(Exception ex) { }
 
 }
 
