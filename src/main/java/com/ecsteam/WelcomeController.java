@@ -196,6 +196,23 @@ public class WelcomeController {
 		response.addCookie(cookie);
 		return redirectViaJavascript();
 	}
+	
+		
+	@RequestMapping(value = "/createVcapCookie", method = RequestMethod.GET)
+	@ResponseBody
+	public String createVcapCookie(HttpServletRequest request, HttpServletResponse response) {
+		String instanceGuid = System.getenv("CF_INSTANCE_GUID");
+		Cookie cookie = new Cookie("__VCAP_ID__", instanceGuid);
+		cookie.setPath("/");
+		response.addCookie(cookie);
+
+		cookie = new Cookie("JSESSIONID", "BOGUS");
+		cookie.setPath("/");
+		response.addCookie(cookie);
+
+		
+		return redirectViaJavascript();
+	}
 
 	@RequestMapping(value = "/logstdout", method = RequestMethod.GET)
 	@ResponseBody
