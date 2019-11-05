@@ -1,22 +1,35 @@
 buildscript {
 	ext {
-		springBootVersion = '1.3.8.RELEASE'
+		springBootVersion = '2.0.3.RELEASE'
+        baseVersion = '1.0.0'
 	}
 	repositories {
 		mavenCentral()
+        maven {
+          url "https://plugins.gradle.org/m2/"
+        }
 	}
-	dependencies {
-		classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
-	}
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+        // For Docker image creation support
+        classpath('gradle.plugin.com.palantir.gradle.docker:gradle-docker:0.22.1')
+    }
+    //version = project.getProperty("version") == 'unspecified' ? "${baseVersion}-SNAPSHOT" : project.getProperty("version")
+
 }
 
 apply plugin: 'java'
 apply plugin: 'eclipse'
-apply plugin: 'spring-boot'
+apply plugin: 'org.springframework.boot'
+apply plugin: 'io.spring.dependency-management'
+// For Docker image creation support
+apply plugin: 'com.palantir.docker'
 
-jar {
-	baseName = 'examplea'
-	version = '0.0.1-SNAPSHOT'
+
+
+bootJar {
+	//baseName = 'examplea'
+	//version = '0.0.2-SNAPSHOT'
 }
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -25,12 +38,75 @@ repositories {
 	mavenCentral()
 }
 
+dockerfileZip {
+  baseName 'dockerfile'
+}
+
+docker {
+
+    dependsOn bootJar as Task
+
+    //name "${project.group}/${bootJar.baseName}"
+    name 'kkellner/httpsessionexampleapp:v1'
+    //files createJar.outputs
+    //files "build/libs/HttpSessionExampleApp-1.0.0-SNAPSHOT.jar"
+    //dockerfile file('Dockerfile')
+
+    files bootJar.archivePath
+    println "OUTPUT: ${bootJar.archiveName}"
+    //files "build/libs/${jar.archiveName}"
+    //files jar.archiveName
+
+    copySpec.from("build/libs").into("build/libs")
+
+    buildArgs(['JAR_FILE': "${bootJar.archiveName}"])
+
+    //copySpec.from(tasks.unpack.outputs).into("dependency")
+    //buildArgs(['DEPENDENCY': "dependency"])
+    // buildArgs([
+    //         contextPath: ".",
+    //         jarPath    : ".",
+    //         earPath    : ".",
+    //         libPath    : "."
+    // ])
+
+}
+
+// bootJar {
+//     baseName = 'examplea'
+//     version =  '1.0.0'
+// }
+
+// task unpack(type: Copy) {
+//     dependsOn bootJar
+//     from(zipTree(tasks.bootJar.outputs.files.singleFile))
+//     into("build/dependency")
+// }
+// docker {
+//     //name "${project.group}/${bootJar.baseName}"
+//     name 'hub.docker.com/kkellner/httpsessionexampleapp:v1'
+//     copySpec.from(tasks.unpack.outputs).into("dependency")
+//     buildArgs(['DEPENDENCY': "dependency"])
+// }
+
+
 
 dependencies {
 	compile('org.springframework.boot:spring-boot-starter-web')
 	//compile('org.springframework.boot:spring-boot-starter-data-jpa')
 	compile("org.springframework.boot:spring-boot-actuator")
 	
+    //compile('org.springframework.session:spring-session-data-redis')
+    //compile group: 'org.springframework.data', name: 'spring-data-redis', version: '2.0.6.RELEASE'
+    //compile('redis.clients:jedis:2.9.0')
+    //compile group: 'biz.paluch.redis', name: 'lettuce', version: '4.4.5.Final'
+    //compile group: 'io.lettuce', name: 'lettuce-core', version: '5.0.4.RELEASE'
+    compile group: 'org.apache.commons', name: 'commons-pool2', version: '2.6.0'
+
+    //compile('org.springframework.boot:spring-boot-starter-cloud-connectors')
+    //compile('org.springframework.cloud:spring-cloud-cloudfoundry-connector')
+    //compile('org.springframework.cloud:spring-cloud-spring-service-connector')
+    
 	
 	testCompile('org.springframework.boot:spring-boot-starter-test')
 }

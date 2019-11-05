@@ -1,7 +1,12 @@
 package com.ecsteam;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
@@ -9,7 +14,9 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -51,10 +58,13 @@ public class WelcomeController {
 	private String instanceIndex;
 
 	@RequestMapping(value = "/", method = RequestMethod.GET)
-	@ResponseBody
-	public String index(HttpServletRequest request) {
+	// @ResponseBody
+	public ResponseEntity<String> index(HttpServletRequest request, HttpServletResponse response) {
 
 		HttpSession session = request.getSession(false);
+
+		response.setHeader("Content-Type", "text/plain");
+		response.setContentType("text/plain");
 
 		StringBuilder sb = new StringBuilder();
 		sb.append("<html>");
@@ -66,29 +76,39 @@ public class WelcomeController {
 		sb.append("<h1>App info</h1>");
 
 		sb.append("Page refresh time: " + new Date());
-		sb.append("<br/>spaceName: ");
-		sb.append(spaceName);
+		
+		if (applicationName!=null && !applicationName.equals("unknown")) {
+				
+			
+			sb.append("<br/>spaceName: ");
+			sb.append(spaceName);
+	
+			sb.append("<br/>spaceId: ");
+			sb.append(spaceId);
+	
+			sb.append("<br/>applicationName: ");
+			sb.append(applicationName);
+	
+			sb.append("<br/>applicationId: ");
+			sb.append(applicationId);
+	
+			sb.append("<br/>instanceAddr: ");
+			sb.append(instanceAddr);
+	
+			sb.append("<br/>instanceGuid: ");
+			sb.append(instanceGuid);
+	
+			sb.append("<br/>instanceIndex: ");
+			sb.append(instanceIndex);
+	
+			sb.append("<br/>App URIs (at the time the app was started): ");
+			sb.append(appURIs);
 
-		sb.append("<br/>spaceId: ");
-		sb.append(spaceId);
+		} else {
+			sb.append ("<br/>Not running in Cloud Foundry");
+			showEnvVars(sb);			
+		}
 
-		sb.append("<br/>applicationName: ");
-		sb.append(applicationName);
-
-		sb.append("<br/>applicationId: ");
-		sb.append(applicationId);
-
-		sb.append("<br/>instanceAddr: ");
-		sb.append(instanceAddr);
-
-		sb.append("<br/>instanceGuid: ");
-		sb.append(instanceGuid);
-
-		sb.append("<br/>instanceIndex: ");
-		sb.append(instanceIndex);
-
-		sb.append("<br/>App URIs (at the time the app was started): ");
-		sb.append(appURIs);
 
 		sb.append("<h1>Custom</h1>");
 
@@ -138,7 +158,10 @@ public class WelcomeController {
 
 		sb.append("</body></html>");
 
-		return sb.toString();
+		// return sb.toString();
+		HttpHeaders responseHeaders = new HttpHeaders();
+		responseHeaders.set("Content-Type", "text/html");
+		return new ResponseEntity<>(sb.toString(), responseHeaders, HttpStatus.OK);
 
 	}
 
@@ -196,8 +219,7 @@ public class WelcomeController {
 		response.addCookie(cookie);
 		return redirectViaJavascript();
 	}
-	
-		
+
 	@RequestMapping(value = "/createVcapCookie", method = RequestMethod.GET)
 	@ResponseBody
 	public String createVcapCookie(HttpServletRequest request, HttpServletResponse response) {
@@ -210,7 +232,6 @@ public class WelcomeController {
 		cookie.setPath("/");
 		response.addCookie(cookie);
 
-		
 		return redirectViaJavascript();
 	}
 
@@ -231,10 +252,105 @@ public class WelcomeController {
 	@RequestMapping(value = "/stress", method = RequestMethod.GET)
 	@ResponseBody
 	public String stress(HttpServletRequest request, HttpServletResponse response,
-			@RequestParam(value="durationSeconds",required = true) long durationSeconds) {
+			@RequestParam(value = "durationSeconds", required = true) long durationSeconds) {
 		System.out.println("stress CPU for " + durationSeconds + " seconds");
 		stressCPU(durationSeconds);
 		return redirectViaJavascript();
+	}
+
+	@RequestMapping(value = "/sleep", method = RequestMethod.GET)
+	@ResponseBody
+	public String sleep(HttpServletRequest request, HttpServletResponse response,
+			@RequestParam(value = "durationSeconds", required = true) long durationSeconds) {
+		System.out.println("stress CPU for " + durationSeconds + " seconds");
+		stressCPU(durationSeconds);
+		return redirectViaJavascript();
+	}
+
+	@RequestMapping(value = "/httpCode", method = RequestMethod.GET)
+	@ResponseBody
+	public String httpCode(HttpServletRequest request, HttpServletResponse response,
+			@RequestParam(value = "code", required = true) int httpReponseCode) {
+		System.out.println("Send HTTP respnose code " + httpReponseCode + " on response");
+		response.setStatus(httpReponseCode);
+		return "Responded with HTTP status code " + httpReponseCode;
+	}
+
+	@RequestMapping(value = "/crash", method = RequestMethod.GET)
+	@ResponseBody
+	public String crash(HttpServletRequest request, HttpServletResponse response) {
+		System.out.println("Simulate a crash by exiting the JVM now");
+		crashApp();
+		return redirectViaJavascript();
+	}
+
+	@RequestMapping(value = "/crashMemory", method = RequestMethod.GET)
+	@ResponseBody
+	public String crashMemory(HttpServletRequest request, HttpServletResponse response) {
+		System.out.println("Simulate a crash of JVM via out-of-memory condition");
+		crashMemoryApp();
+		return redirectViaJavascript();
+	}
+
+	void showEnvVars(StringBuilder sb) {
+
+		Map<String, String> env = System.getenv();
+
+		sb.append("<h1>Environment Variables</h1>");
+		sb.append("<pre>");
+		LinkedHashMap<String, String> collect = env.entrySet().stream().sorted(Map.Entry.comparingByKey())
+				.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (oldValue, newValue) -> oldValue,
+						LinkedHashMap::new));
+
+		collect.forEach((k, v) -> {
+			sb.append(k + "=" + v);
+			sb.append("\n");
+		});
+
+		sb.append("</pre>");
+	}
+
+	void crashMemoryApp() {
+		Thread t1 = new Thread(new Runnable() {
+			public void run() {
+				try {
+					Thread.sleep(1000);
+					generateOOM();
+				} catch (InterruptedException e) {
+				}
+			}
+		});
+		t1.start();
+	}
+
+	public void generateOOM() throws InterruptedException {
+
+		System.out.println("triggering OutOfMemory...");
+		List<Object> list = new ArrayList<>();
+		while (true) {
+			try {
+				byte[] bytes = new byte[1024 * 1024 * 1024];
+				list.add(bytes);
+				System.out.println("list size: " + list.size());
+			} catch (Throwable t) {
+				System.out.println("final list size: " + list.size());
+				System.out.println(t.toString());
+			}
+		}
+
+	}
+
+	void crashApp() {
+		Thread t1 = new Thread(new Runnable() {
+			public void run() {
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+				}
+				System.exit(1);
+			}
+		});
+		t1.start();
 	}
 
 	void stressCPU(long durationSeconds) {
@@ -258,9 +374,9 @@ public class WelcomeController {
 	 * Not able to use return type of "View" and return new RedirectView("/");
 	 * because complex testing through load balancer (e.g., F5) might not have a
 	 * match between the "Host:" and the real URL the browser is using. This can
-	 * happen when we force the "Host:" value within the LB. The safest way is
-	 * to let the browser do a relative request back to root URI so the host
-	 * name does not change.
+	 * happen when we force the "Host:" value within the LB. The safest way is to
+	 * let the browser do a relative request back to root URI so the host name does
+	 * not change.
 	 * 
 	 * @return
 	 */

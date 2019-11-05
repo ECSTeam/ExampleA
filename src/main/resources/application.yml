@@ -1,0 +1,9 @@
+#spring:
+#  http:
+#   encoding:
+#     force: true
+#     enabled: true
+#     force-request: false
+#     force-response: true
+#     charset: ISO-8859-1
+     

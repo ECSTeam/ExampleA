@@ -1,5 +1,10 @@
 ---
 applications:
 - name: examplea
-  path: build/libs/examplea-0.0.1-SNAPSHOT.jar
-  instances: 2
+  path: build/libs/HttpSessionExampleApp.jar
+  #routes:
+  #- route: examplea.SOMEDOMAIN.NET
+  buildpack: java_buildpack_offline
+  #buildpack: java_buildpack_v4_offline
+  stack: cflinuxfs3
+  instances: 1
